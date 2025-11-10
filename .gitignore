@@ -8,7 +8,6 @@ page/.turbo/
 
 # Entornos locales
 .env
-page/.env
 
 # Logs y sistema
 npm-debug.log*

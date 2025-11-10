@@ -21,7 +21,8 @@ COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/index.html ./
 COPY --from=builder /app/app.js ./
 COPY --from=builder /app/styles.css ./
-COPY --from=builder /app/.env.example ./.env.example
+COPY .env ./.env
+COPY .env.example ./.env.example
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

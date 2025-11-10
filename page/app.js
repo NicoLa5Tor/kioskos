@@ -3,14 +3,9 @@ const slidesContainer = document.getElementById('slides');
 const refreshButton = document.getElementById('refresh');
 let carouselTimer = null;
 let envConfig = null;
+const ENV_PATHS = ['./.env', '../.env', '/.env'];
 
-async function loadEnv() {
-  const res = await fetch('./.env', { cache: 'no-store' });
-  if (!res.ok) {
-    throw new Error('No se pudo cargar .env (¿estás sirviendo la carpeta via HTTP?)');
-  }
-
-  const text = await res.text();
+async function parseEnv(text) {
   return text
     .split('\n')
     .map(line => line.trim())
@@ -20,6 +15,23 @@ async function loadEnv() {
       env[key.trim()] = valueParts.join('=').trim();
       return env;
     }, {});
+}
+
+async function loadEnv() {
+  let lastError;
+  for (const path of ENV_PATHS) {
+    try {
+      const res = await fetch(path, { cache: 'no-store' });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const text = await res.text();
+      return parseEnv(text);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw new Error(`No se pudo cargar .env (probé ${ENV_PATHS.join(', ')})` + (lastError ? `: ${lastError.message}` : ''));
 }
 
 async function getDriveImages(folderId, apiKey) {
@@ -82,7 +94,7 @@ async function loadCarousel() {
 
     const images = await getDriveImages(folderId, apiKey);
     createCarousel(images);
-    statusBox.textContent = `🎉 Carrusel listo (${images.length} imágenes)`;
+    statusBox.textContent ="";
   } catch (err) {
     statusBox.textContent = `⚠️ Error: ${err.message}`;
     console.error(err);
