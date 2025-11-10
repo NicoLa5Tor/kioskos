@@ -1,0 +1,17 @@
+# Dependencias
+node_modules/
+page/node_modules/
+
+# Builds
+page/styles.css
+page/.turbo/
+
+# Entornos locales
+.env
+page/.env
+
+# Logs y sistema
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store

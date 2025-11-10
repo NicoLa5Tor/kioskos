@@ -1,0 +1,20 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ['./index.html', './app.js'],
+  theme: {
+    extend: {
+      colors: {
+        kiosk: {
+          bg: '#020617',
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'Segoe UI', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      boxShadow: {
+        tv: '0 35px 120px rgba(15, 23, 42, 0.7)',
+      },
+    },
+  },
+  plugins: [],
+};
