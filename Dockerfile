@@ -24,5 +24,5 @@ COPY --from=builder /app/styles.css ./
 COPY .env ./.env
 COPY .env.example ./.env.example
 
-EXPOSE 80
+EXPOSE 5050
 CMD ["nginx", "-g", "daemon off;"]
