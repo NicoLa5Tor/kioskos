@@ -1,0 +1,15 @@
+services:
+  kiosko:
+    container_name: kiosko
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5050:80"
+    restart: unless-stopped
+    networks:
+      - kiosko-network
+
+networks:
+  kiosko-network:
+    external: true
