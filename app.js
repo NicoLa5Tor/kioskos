@@ -2,8 +2,15 @@ const statusBox = document.getElementById('status');
 const slidesContainer = document.getElementById('slides');
 const refreshButton = document.getElementById('refresh');
 let carouselTimer = null;
-let envConfig = null;
-const ENV_PATHS = ['./.env', '../.env', '/.env'];
+let runtimeConfig = null;
+const CONFIG_SOURCES = [
+  { path: './config.json', type: 'json' },
+  { path: '../config.json', type: 'json' },
+  { path: '/config.json', type: 'json' },
+  { path: './.env', type: 'env' },
+  { path: '../.env', type: 'env' },
+  { path: '/.env', type: 'env' }
+];
 
 async function parseEnv(text) {
   return text
@@ -17,13 +24,16 @@ async function parseEnv(text) {
     }, {});
 }
 
-async function loadEnv() {
+async function loadConfig() {
   let lastError;
-  for (const path of ENV_PATHS) {
+  for (const source of CONFIG_SOURCES) {
     try {
-      const res = await fetch(path, { cache: 'no-store' });
+      const res = await fetch(source.path, { cache: 'no-store' });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
+      }
+      if (source.type === 'json') {
+        return await res.json();
       }
       const text = await res.text();
       return parseEnv(text);
@@ -31,7 +41,11 @@ async function loadEnv() {
       lastError = err;
     }
   }
-  throw new Error(`No se pudo cargar .env (probé ${ENV_PATHS.join(', ')})` + (lastError ? `: ${lastError.message}` : ''));
+  const triedPaths = CONFIG_SOURCES.map(src => src.path).join(', ');
+  throw new Error(
+    `No se pudo cargar configuración (probé ${triedPaths})` +
+      (lastError ? `: ${lastError.message}` : '')
+  );
 }
 
 async function getDriveImages(folderId, apiKey) {
@@ -75,18 +89,18 @@ function createCarousel(images) {
   carouselTimer = setInterval(advanceSlide, 5000);
 }
 
-async function ensureEnv() {
-  if (!envConfig) {
-    envConfig = await loadEnv();
+async function ensureConfig() {
+  if (!runtimeConfig) {
+    runtimeConfig = await loadConfig();
   }
-  return envConfig;
+  return runtimeConfig;
 }
 
 async function loadCarousel() {
   try {
-    const env = await ensureEnv();
-    const folderId = env.FOLDER_ID;
-    const apiKey = env.API_KEY;
+    const config = await ensureConfig();
+    const folderId = config.FOLDER_ID;
+    const apiKey = config.API_KEY;
 
     if (!folderId || !apiKey) {
       throw new Error('Config incompleta: define FOLDER_ID y API_KEY en .env');

@@ -1,9 +1,7 @@
 node_modules
-page/node_modules
-page/styles.css
+styles.css
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-Dockerfile
 .git
 .gitignore
