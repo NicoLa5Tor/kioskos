@@ -43,6 +43,7 @@ function showStatus(message) {
 
 function reportError(message) {
   showStatus('⚠️ Error: ' + message);
+  showFallbackMessage('⚠️ ' + message);
   if (window.console && console.error) {
     console.error(message);
   }
@@ -67,6 +68,27 @@ function ensureSlidesContainerStyles() {
   if (!style.minHeight) style.minHeight = '420px';
   if (!style.backgroundColor) style.backgroundColor = '#000000';
   if (!style.overflow) style.overflow = 'hidden';
+}
+
+function showFallbackMessage(text) {
+  if (!slidesContainer) {
+    return;
+  }
+  ensureSlidesContainerStyles();
+  slidesContainer.innerHTML = '';
+  var placeholder = document.createElement('div');
+  placeholder.style.position = 'absolute';
+  placeholder.style.top = '50%';
+  placeholder.style.left = '50%';
+  placeholder.style.transform = 'translate(-50%, -50%)';
+  placeholder.style.color = '#ffffff';
+  placeholder.style.fontSize = '20px';
+  placeholder.style.textAlign = 'center';
+  placeholder.style.padding = '20px';
+  placeholder.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+  placeholder.style.borderRadius = '12px';
+  placeholder.textContent = text || 'Cargando carrusel...';
+  slidesContainer.appendChild(placeholder);
 }
 
 function setupSlideElement(slide, isVisible) {
@@ -202,6 +224,7 @@ function getDriveImages(folderId, apiKey, onSuccess, onError) {
 
 function createCarousel(images) {
   if (!slidesContainer || !images || !images.length) {
+    showFallbackMessage('⚠️ No hay imágenes en la carpeta');
     return;
   }
 
