@@ -32,8 +32,12 @@ function main() {
     API_KEY: env.API_KEY
   };
 
-  const configPath = path.resolve(process.cwd(), 'config.json');
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  const configJsonPath = path.resolve(process.cwd(), 'config.json');
+  fs.writeFileSync(configJsonPath, JSON.stringify(config, null, 2));
+
+  const configJsPath = path.resolve(process.cwd(), 'config.js');
+  const jsContent = 'window.APP_CONFIG = ' + JSON.stringify(config, null, 2) + ';\n';
+  fs.writeFileSync(configJsPath, jsContent);
 }
 
 main();

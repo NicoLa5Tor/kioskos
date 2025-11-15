@@ -4,6 +4,8 @@ node_modules/
 # Builds
 styles.css
 .turbo/
+config.js
+config.json
 
 # Entornos locales
 .env

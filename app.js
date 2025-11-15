@@ -167,6 +167,12 @@ function ensureConfig(onSuccess, onError) {
     return;
   }
 
+  if (window.APP_CONFIG) {
+    runtimeConfig = window.APP_CONFIG;
+    onSuccess(runtimeConfig);
+    return;
+  }
+
   loadConfigFromIndex(0, function(config) {
     runtimeConfig = config;
     onSuccess(runtimeConfig);

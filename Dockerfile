@@ -24,6 +24,7 @@ COPY --from=builder /app/index.html ./
 COPY --from=builder /app/app.js ./
 COPY --from=builder /app/styles.css ./
 COPY --from=builder /app/config.json ./config.json
+COPY --from=builder /app/config.js ./config.js
 
 EXPOSE 5050
 CMD ["nginx", "-g", "daemon off;"]
