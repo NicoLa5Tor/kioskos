@@ -1,3 +1,179 @@
+// Polyfills básicos para navegadores de TV muy viejos
+(function() {
+  if (!Array.prototype.forEach) {
+    Array.prototype.forEach = function(callback, thisArg) {
+      for (var i = 0; i < this.length; i += 1) {
+        if (i in this) {
+          callback.call(thisArg, this[i], i, this);
+        }
+      }
+    };
+  }
+
+  if (!Array.prototype.map) {
+    Array.prototype.map = function(callback, thisArg) {
+      var result = [];
+      for (var i = 0; i < this.length; i += 1) {
+        if (i in this) {
+          result[i] = callback.call(thisArg, this[i], i, this);
+        }
+      }
+      return result;
+    };
+  }
+
+  if (!Array.prototype.filter) {
+    Array.prototype.filter = function(callback, thisArg) {
+      var result = [];
+      for (var i = 0; i < this.length; i += 1) {
+        if (i in this && callback.call(thisArg, this[i], i, this)) {
+          result.push(this[i]);
+        }
+      }
+      return result;
+    };
+  }
+
+  if (!Array.prototype.reduce) {
+    Array.prototype.reduce = function(callback, initialValue) {
+      var accumulator = initialValue;
+      var startIndex = 0;
+      if (typeof accumulator === 'undefined') {
+        while (startIndex < this.length && !(startIndex in this)) {
+          startIndex += 1;
+        }
+        if (startIndex >= this.length) {
+          throw new TypeError('Reduce de array vacío sin valor inicial');
+        }
+        accumulator = this[startIndex];
+        startIndex += 1;
+      }
+      for (var i = startIndex; i < this.length; i += 1) {
+        if (i in this) {
+          accumulator = callback(accumulator, this[i], i, this);
+        }
+      }
+      return accumulator;
+    };
+  }
+
+  if (!String.prototype.trim) {
+    String.prototype.trim = function() {
+      return this.replace(/^\s+|\s+$/g, '');
+    };
+  }
+
+  if (typeof Promise !== 'function') {
+    var PENDING = 0;
+    var FULFILLED = 1;
+    var REJECTED = 2;
+
+    var SimplePromise = function(executor) {
+      if (!(this instanceof SimplePromise)) {
+        throw new TypeError('Promise debe llamarse con new');
+      }
+
+      var state = PENDING;
+      var value = null;
+      var handlers = [];
+
+      function fulfill(result) {
+        if (state !== PENDING) {
+          return;
+        }
+        state = FULFILLED;
+        value = result;
+        handlers.forEach(handle);
+        handlers = null;
+      }
+
+      function reject(error) {
+        if (state !== PENDING) {
+          return;
+        }
+        state = REJECTED;
+        value = error;
+        handlers.forEach(handle);
+        handlers = null;
+      }
+
+      function resolve(result) {
+        try {
+          if (result && (typeof result === 'object' || typeof result === 'function')) {
+            var then = result.then;
+            if (typeof then === 'function') {
+              then.call(result, resolve, reject);
+              return;
+            }
+          }
+          fulfill(result);
+        } catch (err) {
+          reject(err);
+        }
+      }
+
+      function handle(handler) {
+        if (state === PENDING) {
+          handlers.push(handler);
+          return;
+        }
+
+        var callback = state === FULFILLED ? handler.onFulfilled : handler.onRejected;
+        if (!callback) {
+          if (state === FULFILLED) {
+            handler.resolve(value);
+          } else {
+            handler.reject(value);
+          }
+          return;
+        }
+
+        try {
+          var result = callback(value);
+          handler.resolve(result);
+        } catch (err) {
+          handler.reject(err);
+        }
+      }
+
+      this.then = function(onFulfilled, onRejected) {
+        return new SimplePromise(function(resolve, reject) {
+          handle({
+            onFulfilled: typeof onFulfilled === 'function' ? onFulfilled : null,
+            onRejected: typeof onRejected === 'function' ? onRejected : null,
+            resolve: resolve,
+            reject: reject
+          });
+        });
+      };
+
+      this.catch = function(onRejected) {
+        return this.then(null, onRejected);
+      };
+
+      try {
+        executor(resolve, reject);
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    SimplePromise.resolve = function(value) {
+      return new SimplePromise(function(resolve) {
+        resolve(value);
+      });
+    };
+
+    SimplePromise.reject = function(reason) {
+      return new SimplePromise(function(resolve, reject) {
+        reject(reason);
+      });
+    };
+
+    window.Promise = SimplePromise;
+  }
+})();
+
 var statusBox = document.getElementById('status');
 var slidesContainer = document.getElementById('slides');
 var refreshButton = document.getElementById('refresh');
@@ -11,6 +187,66 @@ var CONFIG_SOURCES = [
   { path: '../.env', type: 'env' },
   { path: '/.env', type: 'env' }
 ];
+
+function reportError(message) {
+  if (statusBox) {
+    statusBox.textContent = '⚠️ Error: ' + message;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', function(evt) {
+    if (evt && evt.message) {
+      reportError(evt.message);
+    }
+  });
+}
+
+function ensureSlidesContainerStyles() {
+  if (!slidesContainer) {
+    return;
+  }
+  var style = slidesContainer.style;
+  if (!style.position) {
+    style.position = 'relative';
+  }
+  if (!style.width) {
+    style.width = '100%';
+  }
+  if (!style.height) {
+    style.height = '100%';
+  }
+  if (!style.minHeight) {
+    style.minHeight = '420px';
+  }
+  if (!style.backgroundColor) {
+    style.backgroundColor = '#000000';
+  }
+  if (!style.overflow) {
+    style.overflow = 'hidden';
+  }
+}
+
+function setupSlideElement(slide, isVisible) {
+  var style = slide.style;
+  style.position = 'absolute';
+  style.top = '0';
+  style.left = '0';
+  style.right = '0';
+  style.bottom = '0';
+  style.width = '100%';
+  style.height = '100%';
+  style.opacity = isVisible ? '1' : '0';
+  style.transition = 'opacity 0.7s ease-in-out';
+  style.display = 'block';
+}
+
+function toggleSlideVisibility(slide, visible) {
+  if (!slide) {
+    return;
+  }
+  slide.style.opacity = visible ? '1' : '0';
+}
 
 function fetchWithFallback(url, options) {
   if (typeof window.fetch === 'function') {
@@ -122,17 +358,23 @@ function getDriveImages(folderId, apiKey) {
 }
 
 function createCarousel(images) {
-  var i;
-  slidesContainer.innerHTML = '';
-  for (i = 0; i < images.length; i += 1) {
-    var slide = document.createElement('div');
-    var visibleClass = i === 0 ? 'opacity-100' : 'opacity-0';
-    slide.className = 'slide absolute inset-0 transition-opacity duration-700 ease-in-out ' + visibleClass;
-    slide.innerHTML = '<img src="' + images[i] + '" alt="Imagen ' + (i + 1) + '">';
-    slidesContainer.appendChild(slide);
+  if (!slidesContainer || !images || !images.length) {
+    return;
   }
 
-  var slides = document.querySelectorAll('.slide');
+  ensureSlidesContainerStyles();
+  slidesContainer.innerHTML = '';
+
+  var slides = [];
+  for (var i = 0; i < images.length; i += 1) {
+    var slide = document.createElement('div');
+    slide.className = 'slide';
+    setupSlideElement(slide, i === 0);
+    slide.innerHTML = '<img src="' + images[i] + '" alt="Imagen ' + (i + 1) + '" style="width:100%;height:100%;object-fit:contain;display:block;">';
+    slidesContainer.appendChild(slide);
+    slides.push(slide);
+  }
+
   if (carouselTimer) {
     clearInterval(carouselTimer);
   }
@@ -142,11 +384,9 @@ function createCarousel(images) {
     if (!slides.length) {
       return;
     }
-    slides[current].classList.remove('opacity-100');
-    slides[current].classList.add('opacity-0');
+    toggleSlideVisibility(slides[current], false);
     current = (current + 1) % slides.length;
-    slides[current].classList.remove('opacity-0');
-    slides[current].classList.add('opacity-100');
+    toggleSlideVisibility(slides[current], true);
   }
 
   carouselTimer = setInterval(advanceSlide, 5000);
