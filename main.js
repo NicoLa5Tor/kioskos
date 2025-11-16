@@ -163,6 +163,18 @@ function fetchImages() {
 
   showStatus('Preparando imágenes…');
   httpGetJSON(endpoint, function(payload) {
+    var items = normalizeItems(payload);
+
+    if (!window.indexedDB) {
+      var directList = mergeCache(items, []);
+      if (!directList.length) {
+        showStatus('⚠️ El servicio no devolvió imágenes válidas.', true);
+        return;
+      }
+      buildSlides(directList);
+      return;
+    }
+
     openDatabase(function(err, db) {
       if (err) {
         showStatus('⚠️ ' + err.message, true);
@@ -175,7 +187,6 @@ function fetchImages() {
           return;
         }
 
-        var items = normalizeItems(payload);
         var merged = mergeCache(items, previousEntries);
         if (!merged.length) {
           showStatus('⚠️ El servicio no devolvió imágenes válidas.', true);
