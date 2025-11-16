@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-function parseEnvFile(content) {
+function parseEnv(content) {
   return content
     .split(/\r?\n/)
     .map(line => line.trim())
@@ -17,27 +17,23 @@ function parseEnvFile(content) {
 function main() {
   const envPath = path.resolve(process.cwd(), '.env');
   if (!fs.existsSync(envPath)) {
-    throw new Error('.env no existe en ' + envPath);
+    throw new Error('No se encontró .env en ' + envPath);
   }
 
   const raw = fs.readFileSync(envPath, 'utf8');
-  const env = parseEnvFile(raw);
+  const env = parseEnv(raw);
 
-  if (!env.FOLDER_ID || !env.API_KEY) {
-    throw new Error('FOLDER_ID y API_KEY son obligatorios en .env');
+  if (!env.IMAGE_SERVICE_URL) {
+    throw new Error('Define IMAGE_SERVICE_URL en .env');
   }
 
   const config = {
-    FOLDER_ID: env.FOLDER_ID,
-    API_KEY: env.API_KEY
+    API_ENDPOINT: env.IMAGE_SERVICE_URL
   };
 
-  const configJsonPath = path.resolve(process.cwd(), 'config.json');
-  fs.writeFileSync(configJsonPath, JSON.stringify(config, null, 2));
-
-  const configJsPath = path.resolve(process.cwd(), 'config.js');
-  const jsContent = 'window.APP_CONFIG = ' + JSON.stringify(config, null, 2) + ';\n';
-  fs.writeFileSync(configJsPath, jsContent);
+  const configJs = 'window.APP_CONFIG = ' + JSON.stringify(config, null, 2) + ';\n';
+  const outputPath = path.resolve(process.cwd(), 'config.js');
+  fs.writeFileSync(outputPath, configJs);
 }
 
 main();

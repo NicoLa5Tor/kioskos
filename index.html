@@ -6,49 +6,17 @@
   <title>Kiosko Drive — versión universal</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-  <div class="tv-safe-area relative mx-auto flex min-h-screen flex-col gap-6 px-4 py-6 sm:px-8" style="max-width:1200px">
-    <div class="pointer-events-none absolute inset-0 opacity-60" aria-hidden="true">
-      <div class="absolute -left-24 top-16 h-72 w-72 rounded-full bg-sky-500/20 blur-3xl"></div>
-      <div class="absolute -right-10 bottom-10 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl"></div>
+<body class="min-h-screen w-full bg-black text-white">
+  <div class="flex min-h-screen items-center justify-center p-6">
+    <div class="w-full max-w-6xl">
+      <div id="carousel" class="relative w-full overflow-hidden rounded-[32px] border border-white/10 bg-black" style="aspect-ratio:16/9">
+        <div id="slides" class="absolute inset-0"></div>
+      </div>
+      <div id="status" class="mt-4 text-center text-base text-white/80" style="display:none"></div>
     </div>
-
-    <header class="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between" style="display:block">
-      <div class="space-y-3">
-        <p class="text-xs font-semibold uppercase tracking-[0.4em] text-sky-300">Kiosko Drive</p>
-        <h1 class="text-4xl font-semibold leading-tight text-white sm:text-5xl lg:text-6xl">Cartelera digital</h1>
-      </div>
-      <div class="flex flex-col items-start gap-3 rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-white shadow-xl backdrop-blur lg:items-end">
-        <div id="status" class="text-base font-medium text-white">Preparando carrusel…</div>
-        <button id="refresh" class="inline-flex items-center gap-2 rounded-full border border-sky-400/50 bg-sky-500/20 px-5 py-2 text-sm font-semibold uppercase tracking-wide text-sky-100 transition hover:bg-sky-500/40 focus-visible:ring-2 focus-visible:ring-sky-300">
-          <span aria-hidden="true">⟳</span>
-          Recargar ahora
-        </button>
-      </div>
-    </header>
-
-    <main class="relative z-10 flex flex-1 flex-col" style="display:block">
-      <div id="carousel" class="relative flex-1 overflow-hidden rounded-[40px] border border-white/10 bg-black/50 shadow-2xl shadow-slate-950/60" style="position:relative;min-height:420px;border-radius:32px;border:1px solid rgba(255,255,255,0.1);background:#000;overflow:hidden">
-        <div id="slides" class="h-full w-full">
-          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:20px;text-align:center;padding:20px;background-color:rgba(0,0,0,0.6);border-radius:12px">
-            Cargando carrusel…
-          </div>
-        </div>
-        <div class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-6">
-          <div class="rounded-full border border-white/10 bg-black/60 px-5 py-1 text-xs text-white/80 backdrop-blur">Cambia automáticamente cada 5 segundos</div>
-        </div>
-      </div>
-
-      <div class="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-300" style="display:flex;flex-wrap:wrap;gap:12px">
-        <span class="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-medium text-white/90">
-          <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
-          Live sync
-        </span>
-      </div>
-    </main>
   </div>
 
-  <script src="config.js?v=2"></script>
-  <script src="main.js?v=2"></script>
+  <script src="config.js?v=4"></script>
+  <script src="main.js?v=4"></script>
 </body>
 </html>

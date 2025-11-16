@@ -1,17 +1,15 @@
 {
-  "name": "page",
+  "name": "kiosko-drive",
   "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
-  "scripts": {
-    "build:css": "tailwindcss -i ./src/tailwind.css -o ./styles.css --minify",
-    "watch:css": "tailwindcss -i ./src/tailwind.css -o ./styles.css --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "description": "Kiosko digital",
+  "main": "main.js",
   "type": "commonjs",
+  "scripts": {
+    "build:css": "tailwindcss -c ./tailwind.config.js -i ./src/tailwind.css -o ./styles.css --minify",
+    "watch:css": "tailwindcss -c ./tailwind.config.js -i ./src/tailwind.css -o ./styles.css --watch",
+    "build": "npm run build:css && node scripts/generate-config.js",
+    "test": "echo \"No hay pruebas configuradas\" && exit 0"
+  },
   "devDependencies": {
     "tailwindcss": "^3.4.15"
   }

@@ -1,131 +1,20 @@
-var statusBox = document.getElementById('status');
 var slidesContainer = document.getElementById('slides');
-var refreshButton = document.getElementById('refresh');
+var statusBox = document.getElementById('status');
 var carouselTimer = null;
-var runtimeConfig = null;
-var CONFIG_SOURCES = [
-  { path: './config.json', type: 'json' },
-  { path: '../config.json', type: 'json' },
-  { path: '/config.json', type: 'json' },
-  { path: './.env', type: 'env' },
-  { path: '../.env', type: 'env' },
-  { path: '/.env', type: 'env' }
-];
+var API_IMAGES_ENDPOINT = (window.APP_CONFIG && window.APP_CONFIG.API_ENDPOINT) || '';
+var readySlides = [];
+var failedSlides = 0;
 
-function addClass(el, className) {
-  if (!el || !className) {
-    return;
+function showStatus(message, isError) {
+  if (!statusBox) return;
+  if (!message) {
+    statusBox.textContent = '';
+    statusBox.style.display = 'none';
+  } else {
+    statusBox.textContent = message;
+    statusBox.style.display = 'block';
+    statusBox.style.color = isError ? '#f87171' : '#f1f5f9';
   }
-  if (el.classList && el.classList.add) {
-    el.classList.add(className);
-  } else if ((' ' + el.className + ' ').indexOf(' ' + className + ' ') === -1) {
-    el.className = (el.className ? el.className + ' ' : '') + className;
-  }
-}
-
-function removeClass(el, className) {
-  if (!el || !className) {
-    return;
-  }
-  if (el.classList && el.classList.remove) {
-    el.classList.remove(className);
-  } else if (el.className) {
-    var pattern = new RegExp('(?:^|\\s)' + className + '(?:\\s|$)', 'g');
-    el.className = el.className.replace(pattern, ' ').replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
-  }
-}
-
-function showStatus(message) {
-  if (statusBox) {
-    statusBox.textContent = message || '';
-  }
-}
-
-function reportError(message) {
-  showStatus('⚠️ Error: ' + message);
-  showFallbackMessage('⚠️ ' + message);
-  if (window.console && console.error) {
-    console.error(message);
-  }
-}
-
-if (typeof window !== 'undefined' && window.addEventListener) {
-  window.addEventListener('error', function(evt) {
-    if (evt && evt.message) {
-      reportError(evt.message);
-    }
-  });
-}
-
-function ensureSlidesContainerStyles() {
-  if (!slidesContainer) {
-    return;
-  }
-  var style = slidesContainer.style;
-  if (!style.position) style.position = 'relative';
-  if (!style.width) style.width = '100%';
-  if (!style.height) style.height = '100%';
-  if (!style.minHeight) style.minHeight = '420px';
-  if (!style.backgroundColor) style.backgroundColor = '#000000';
-  if (!style.overflow) style.overflow = 'hidden';
-}
-
-function showFallbackMessage(text) {
-  if (!slidesContainer) {
-    return;
-  }
-  ensureSlidesContainerStyles();
-  slidesContainer.innerHTML = '';
-  var placeholder = document.createElement('div');
-  placeholder.style.position = 'absolute';
-  placeholder.style.top = '50%';
-  placeholder.style.left = '50%';
-  placeholder.style.transform = 'translate(-50%, -50%)';
-  placeholder.style.color = '#ffffff';
-  placeholder.style.fontSize = '20px';
-  placeholder.style.textAlign = 'center';
-  placeholder.style.padding = '20px';
-  placeholder.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-  placeholder.style.borderRadius = '12px';
-  placeholder.textContent = text || 'Cargando carrusel...';
-  slidesContainer.appendChild(placeholder);
-}
-
-function setupSlideElement(slide, isVisible) {
-  var style = slide.style;
-  style.position = 'absolute';
-  style.top = '0';
-  style.left = '0';
-  style.right = '0';
-  style.bottom = '0';
-  style.width = '100%';
-  style.height = '100%';
-  style.opacity = isVisible ? '1' : '0';
-  style.transition = 'opacity 0.7s ease-in-out';
-  style.display = 'block';
-}
-
-function toggleSlideVisibility(slide, visible) {
-  if (slide && slide.style) {
-    slide.style.opacity = visible ? '1' : '0';
-  }
-}
-
-function parseEnv(text) {
-  var env = {};
-  var lines = text.split('\n');
-  for (var i = 0; i < lines.length; i += 1) {
-    var line = lines[i];
-    if (!line) continue;
-    line = line.replace(/^\s+|\s+$/g, '');
-    if (!line || line.charAt(0) === '#') {
-      continue;
-    }
-    var parts = line.split('=');
-    var key = parts.shift();
-    env[key.replace(/^\s+|\s+$/g, '')] = parts.join('=').replace(/^\s+|\s+$/g, '');
-  }
-  return env;
 }
 
 function request(url, onSuccess, onError) {
@@ -137,12 +26,12 @@ function request(url, onSuccess, onError) {
         if (xhr.status >= 200 && xhr.status < 300) {
           onSuccess(xhr.responseText);
         } else {
-          onError(new Error('HTTP ' + xhr.status + ' al solicitar ' + url));
+          onError(new Error('HTTP ' + xhr.status));
         }
       }
     };
     xhr.onerror = function() {
-      onError(new Error('Fallo de red al solicitar ' + url));
+      onError(new Error('Fallo de red'));
     };
     xhr.send(null);
   } catch (err) {
@@ -161,149 +50,180 @@ function requestJSON(url, onSuccess, onError) {
   }, onError);
 }
 
-function loadConfigFromIndex(index, onSuccess, onError) {
-  if (index >= CONFIG_SOURCES.length) {
-    onError(new Error('No se pudo cargar configuración (.env/config.json)'));
-    return;
-  }
+function parseItems(payload) {
+  if (!payload) return [];
+  if (payload.files && payload.files.length) return payload.files;
+  if (payload.data && payload.data.length) return payload.data;
+  if (payload.length) return payload;
 
-  var source = CONFIG_SOURCES[index];
-  request(source.path, function(text) {
-    try {
-      if (source.type === 'json') {
-        onSuccess(JSON.parse(text));
-      } else {
-        onSuccess(parseEnv(text));
+  var collected = [];
+  if (typeof payload === 'object') {
+    for (var key in payload) {
+      if (Object.prototype.hasOwnProperty.call(payload, key)) {
+        collected.push(payload[key]);
       }
-    } catch (err) {
-      loadConfigFromIndex(index + 1, onSuccess, onError);
     }
-  }, function() {
-    loadConfigFromIndex(index + 1, onSuccess, onError);
-  });
+  }
+  return collected;
 }
 
-function ensureConfig(onSuccess, onError) {
-  if (runtimeConfig) {
-    onSuccess(runtimeConfig);
+function fetchCarouselImages(onSuccess, onError) {
+  if (!API_IMAGES_ENDPOINT) {
+    onError(new Error('Falta IMAGE_SERVICE_URL en la configuración.'));
     return;
   }
 
-  if (window.APP_CONFIG) {
-    runtimeConfig = window.APP_CONFIG;
-    onSuccess(runtimeConfig);
-    return;
+  var endpoint = API_IMAGES_ENDPOINT;
+  if (endpoint.indexOf('?') === -1) {
+    endpoint += '?';
+  } else if (endpoint.charAt(endpoint.length - 1) !== '&' && endpoint.charAt(endpoint.length - 1) !== '?') {
+    endpoint += '&';
   }
+  endpoint += 't=' + new Date().getTime();
 
-  loadConfigFromIndex(0, function(config) {
-    runtimeConfig = config;
-    onSuccess(runtimeConfig);
-  }, onError);
-}
-
-function getDriveImages(folderId, apiKey, onSuccess, onError) {
-  showStatus('🔄 Obteniendo lista de imágenes...');
-  var query = encodeURIComponent("'" + folderId + "' in parents and mimeType contains 'image/'");
-  var fields = encodeURIComponent('files(id,name)');
-  var url = 'https://www.googleapis.com/drive/v3/files?q=' + query + '&fields=' + fields + '&key=' + apiKey;
-
-  requestJSON(url, function(data) {
-    if (!data || !data.files || !data.files.length) {
-      onError(new Error('No se encontraron imágenes en la carpeta.'));
+  requestJSON(endpoint, function(payload) {
+    var items = parseItems(payload);
+    if (!items.length) {
+      onError(new Error('No hay imágenes disponibles.'));
       return;
     }
 
-    var images = [];
-    for (var i = 0; i < data.files.length; i += 1) {
-      var file = data.files[i];
-      images.push('https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media&key=' + apiKey);
+    var urls = [];
+    for (var i = 0; i < items.length; i += 1) {
+      var file = items[i];
+      if (!file) continue;
+      var direct = file.downloadUrl || file.url || file.link || file.image;
+      if (direct) {
+        urls.push(direct);
+      }
     }
-    onSuccess(images);
+
+    if (!urls.length) {
+      onError(new Error('No se pudieron preparar las imágenes.'));
+      return;
+    }
+
+    showStatus('');
+    onSuccess(urls);
   }, onError);
 }
 
-function createCarousel(images) {
-  if (!slidesContainer || !images || !images.length) {
-    showFallbackMessage('⚠️ No hay imágenes en la carpeta');
+function startCarousel() {
+  if (carouselTimer || readySlides.length === 0) {
     return;
   }
+  var current = 0;
+  readySlides[current].style.opacity = '1';
+  carouselTimer = setInterval(function() {
+    if (!readySlides.length) {
+      return;
+    }
+    readySlides[current].style.opacity = '0';
+    current = (current + 1) % readySlides.length;
+    readySlides[current].style.opacity = '1';
+  }, 5000);
+}
 
-  ensureSlidesContainerStyles();
-  slidesContainer.innerHTML = '';
+function clearSlides() {
+  if (slidesContainer) {
+    slidesContainer.innerHTML = '';
+  }
+  if (carouselTimer) {
+    clearInterval(carouselTimer);
+    carouselTimer = null;
+  }
+  readySlides = [];
+  failedSlides = 0;
+}
 
-  var slides = [];
-  for (var i = 0; i < images.length; i += 1) {
+function registerImageSuccess(slide) {
+  readySlides.push(slide);
+  if (readySlides.length === 1) {
+    showStatus('');
+    startCarousel();
+  }
+}
+
+function registerImageFailure(totalSlides) {
+  failedSlides += 1;
+  if (failedSlides >= totalSlides && readySlides.length === 0) {
+    showStatus('⚠️ Ninguna imagen se pudo cargar. Revisa tamaños o permisos.', true);
+  }
+}
+
+function createSlides(urls) {
+  clearSlides();
+  for (var i = 0; i < urls.length; i += 1) {
     var slide = document.createElement('div');
-    slide.className = 'slide';
-    setupSlideElement(slide, i === 0);
+    slide.style.position = 'absolute';
+    slide.style.inset = '0';
+    slide.style.opacity = '0';
+    slide.style.transition = 'opacity 0.6s ease-in-out';
 
     var img = document.createElement('img');
-    img.src = images[i];
+    img.src = urls[i];
     img.alt = 'Imagen ' + (i + 1);
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.objectFit = 'contain';
+    img.style.backgroundColor = '#000';
     img.style.display = 'block';
 
+    var placeholder = document.createElement('div');
+    placeholder.style.position = 'absolute';
+    placeholder.style.inset = '0';
+    placeholder.style.display = 'flex';
+    placeholder.style.alignItems = 'center';
+    placeholder.style.justifyContent = 'center';
+    placeholder.style.backgroundColor = '#101010';
+    placeholder.style.color = '#fff';
+    placeholder.style.fontSize = '1.25rem';
+    placeholder.textContent = 'Preparando imagen…';
+
+    (function(slideRef, placeholderRef) {
+      img.onload = function() {
+        if (placeholderRef.parentNode) {
+          placeholderRef.parentNode.removeChild(placeholderRef);
+        }
+        registerImageSuccess(slideRef);
+      };
+      img.onerror = function() {
+        placeholderRef.textContent = 'Imagen omitida (peso excesivo o sin acceso)';
+        placeholderRef.style.backgroundColor = 'rgba(0,0,0,0.8)';
+        placeholderRef.style.fontSize = '1rem';
+        registerImageFailure(urls.length);
+      };
+    })(slide, placeholder);
+
     slide.appendChild(img);
+    slide.appendChild(placeholder);
     slidesContainer.appendChild(slide);
-    slides.push(slide);
   }
 
-  if (carouselTimer) {
-    clearInterval(carouselTimer);
+  if (!urls.length) {
+    reportError(new Error('No hay imágenes para mostrar.'));
   }
-
-  var current = 0;
-  carouselTimer = setInterval(function() {
-    if (!slides.length) {
-      return;
-    }
-    toggleSlideVisibility(slides[current], false);
-    current = (current + 1) % slides.length;
-    toggleSlideVisibility(slides[current], true);
-  }, 5000);
 }
 
-function loadCarousel(done) {
-  var finalize = typeof done === 'function' ? done : function() {};
-  ensureConfig(function(config) {
-    var folderId = config.FOLDER_ID;
-    var apiKey = config.API_KEY;
-    if (!folderId || !apiKey) {
-      reportError('Config incompleta: define FOLDER_ID y API_KEY en .env');
-      finalize();
-      return;
-    }
+function reportError(err) {
+  console.error(err);
+  showStatus('⚠️ ' + (err.message || err), true);
+}
 
-    getDriveImages(folderId, apiKey, function(images) {
-      createCarousel(images);
-      showStatus('');
-      finalize();
-    }, function(err) {
-      reportError(err.message || String(err));
-      finalize();
-    });
+function loadCarousel() {
+  fetchCarouselImages(function(images) {
+    createSlides(images);
+    if (readySlides.length === 0) {
+      showStatus('Esperando la primera imagen…');
+    }
   }, function(err) {
-    reportError(err.message || String(err));
-    finalize();
+    reportError(err);
   });
 }
 
-if (refreshButton) {
-  refreshButton.addEventListener('click', function() {
-    refreshButton.disabled = true;
-    addClass(refreshButton, 'opacity-60');
-    addClass(refreshButton, 'cursor-not-allowed');
-
-    var enableButton = function() {
-      refreshButton.disabled = false;
-      removeClass(refreshButton, 'opacity-60');
-      removeClass(refreshButton, 'cursor-not-allowed');
-    };
-
-    loadCarousel(enableButton);
-  });
-}
-
-loadCarousel();
+window.addEventListener('load', loadCarousel);
+setInterval(function() {
+  if (readySlides.length === 0) {
+    showStatus('Seguimos cargando… si tarda, revisa que las imágenes no sean enormes.');
+  }
+}, 15000);

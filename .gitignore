@@ -3,9 +3,8 @@ node_modules/
 
 # Builds
 styles.css
-.turbo/
 config.js
-config.json
+.turbo/
 
 # Entornos locales
 .env
