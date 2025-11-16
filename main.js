@@ -231,10 +231,10 @@ function buildSlides(entries) {
     var img = document.createElement('img');
     img.src = url;
     img.alt = entry.name || 'Imagen ' + (index + 1);
-    img.style.width = 'auto';
-    img.style.maxWidth = '100%';
-    img.style.height = '100%';
-    img.style.objectFit = 'contain';
+    img.style.width = '100%';
+    img.style.height = 'auto';
+    img.style.maxHeight = '100%';
+    img.style.display = 'block';
     img.style.backgroundColor = '#000';
 
     var placeholder = document.createElement('div');
