@@ -21,7 +21,7 @@ COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copiar los artefactos build + assets
 COPY --from=builder /app/index.html ./
-COPY --from=builder /app/app.js ./
+COPY --from=builder /app/main.js ./
 COPY --from=builder /app/styles.css ./
 COPY --from=builder /app/config.json ./config.json
 COPY --from=builder /app/config.js ./config.js
